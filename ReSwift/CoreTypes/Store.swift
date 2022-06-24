@@ -10,10 +10,10 @@
  This class is the default implementation of the `StoreType` protocol. You will use this store in most
  of your applications. You shouldn't need to implement your own store.
  You initialize the store with a reducer and an initial application state. If your app has multiple
- reducers you can combine them by initializing a `MainReducer` with all of your reducers as an
+ reducers you can combine them by initializng a `MainReducer` with all of your reducers as an
  argument.
  */
-open class Store<State>: StoreType {
+open class Store<State, ActionType>: StoreType {
 
     typealias SubscriptionType = SubscriptionBox<State>
 
@@ -29,9 +29,9 @@ open class Store<State>: StoreType {
         }
     }
 
-    public lazy var dispatchFunction: DispatchFunction! = createDispatchFunction()
+    public lazy var dispatchFunction: DispatchFunction<ActionType>! = createDispatchFunction()
 
-    private var reducer: Reducer<State>
+    private var reducer: Reducer<State, ActionType>
 
     var subscriptions: Set<SubscriptionType> = []
 
@@ -41,7 +41,7 @@ open class Store<State>: StoreType {
     /// by default.
     fileprivate let subscriptionsAutomaticallySkipRepeats: Bool
 
-    public var middleware: [Middleware<State>] {
+    public var middleware: [Middleware<State, ActionType>] {
         didSet {
             dispatchFunction = createDispatchFunction()
         }
@@ -60,9 +60,10 @@ open class Store<State>: StoreType {
     ///   to skip idempotent state updates when a subscriber's state type 
     ///   implements `Equatable`. Defaults to `true`.
     public required init(
-        reducer: @escaping Reducer<State>,
+        reducer: @escaping Reducer<State, ActionType>,
         state: State?,
-        middleware: [Middleware<State>] = [],
+        initialAction: ActionType,
+        middleware: [Middleware<State, ActionType>] = [],
         automaticallySkipsRepeats: Bool = true
     ) {
         self.subscriptionsAutomaticallySkipRepeats = automaticallySkipsRepeats
@@ -72,21 +73,21 @@ open class Store<State>: StoreType {
         if let state = state {
             self.state = state
         } else {
-            dispatch(ReSwiftInit())
+            dispatch(initialAction)
         }
     }
 
-    private func createDispatchFunction() -> DispatchFunction! {
+    private func createDispatchFunction() -> DispatchFunction<ActionType>! {
         // Wrap the dispatch function with all middlewares
         return middleware
             .reversed()
             .reduce(
-                { [unowned self] action in
+                { [unowned self] (action: ActionType) in
                     self._defaultDispatch(action: action) },
                 { dispatchFunction, middleware in
                     // If the store get's deinitialized before the middleware is complete; drop
                     // the action without dispatching.
-                    let dispatch: (Action) -> Void = { [weak self] in self?.dispatch($0) }
+                    let dispatch: (ActionType) -> Void = { [weak self] in self?.dispatch($0) }
                     let getState: () -> State? = { [weak self] in self?.state }
                     return middleware(dispatch, getState)(dispatchFunction)
             })
@@ -143,19 +144,13 @@ open class Store<State>: StoreType {
     }
 
     open func unsubscribe(_ subscriber: AnyStoreSubscriber) {
-        #if swift(>=5.0)
         if let index = subscriptions.firstIndex(where: { return $0.subscriber === subscriber }) {
             subscriptions.remove(at: index)
         }
-        #else
-        if let index = subscriptions.index(where: { return $0.subscriber === subscriber }) {
-            subscriptions.remove(at: index)
-        }
-        #endif
     }
 
     // swiftlint:disable:next identifier_name
-    open func _defaultDispatch(action: Action) {
+    open func _defaultDispatch(action: ActionType) {
         guard !isDispatching.value else {
             raiseFatalError(
                 "ReSwift:ConcurrentMutationError- Action has been dispatched while" +
@@ -172,46 +167,11 @@ open class Store<State>: StoreType {
         state = newState
     }
 
-    open func dispatch(_ action: Action) {
+    open func dispatch(_ action: ActionType) {
         dispatchFunction(action)
     }
 
-    @available(*, deprecated, message: "Deprecated in favor of https://github.com/ReSwift/ReSwift-Thunk")
-    open func dispatch(_ actionCreatorProvider: @escaping ActionCreator) {
-        if let action = actionCreatorProvider(state, self) {
-            dispatch(action)
-        }
-    }
-
-    @available(*, deprecated, message: "Deprecated in favor of https://github.com/ReSwift/ReSwift-Thunk")
-    open func dispatch(_ asyncActionCreatorProvider: @escaping AsyncActionCreator) {
-        dispatch(asyncActionCreatorProvider, callback: nil)
-    }
-
-    @available(*, deprecated, message: "Deprecated in favor of https://github.com/ReSwift/ReSwift-Thunk")
-    open func dispatch(_ actionCreatorProvider: @escaping AsyncActionCreator,
-                       callback: DispatchCallback?) {
-        actionCreatorProvider(state, self) { actionProvider in
-            let action = actionProvider(self.state, self)
-
-            if let action = action {
-                self.dispatch(action)
-                callback?(self.state)
-            }
-        }
-    }
-
     public typealias DispatchCallback = (State) -> Void
-
-    @available(*, deprecated, message: "Deprecated in favor of https://github.com/ReSwift/ReSwift-Thunk")
-    public typealias ActionCreator = (_ state: State, _ store: Store) -> Action?
-
-    @available(*, deprecated, message: "Deprecated in favor of https://github.com/ReSwift/ReSwift-Thunk")
-    public typealias AsyncActionCreator = (
-        _ state: State,
-        _ store: Store,
-        _ actionCreatorCallback: @escaping ((ActionCreator) -> Void)
-    ) -> Void
 }
 
 // MARK: Skip Repeats for Equatable States

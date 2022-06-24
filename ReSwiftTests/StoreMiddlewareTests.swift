@@ -9,40 +9,39 @@
 import XCTest
 @testable import ReSwift
 
-let firstMiddleware: Middleware<Any> = { dispatch, getState in
+let firstMiddleware: Middleware<Any, Action> = { dispatch, getState in
     return { next in
         return { action in
+            switch action {
+            case .setValueStringAction(let value):
+                next(.setValueStringAction(value + " First Middleware"))
 
-            if var action = action as? SetValueStringAction {
-                action.value += " First Middleware"
-                next(action)
-            } else {
+            default:
                 next(action)
             }
         }
     }
 }
 
-let secondMiddleware: Middleware<Any> = { dispatch, getState in
+let secondMiddleware: Middleware<Any, Action> = { dispatch, getState in
     return { next in
         return { action in
+            switch action {
+            case .setValueStringAction(let value):
+                next(.setValueStringAction(value + " Second Middleware"))
 
-            if var action = action as? SetValueStringAction {
-                action.value += " Second Middleware"
-                next(action)
-            } else {
+            default:
                 next(action)
             }
         }
     }
 }
 
-let dispatchingMiddleware: Middleware<Any> = { dispatch, getState in
+let dispatchingMiddleware: Middleware<Any, Action> = { dispatch, getState in
     return { next in
         return { action in
-
-            if var action = action as? SetValueAction {
-                dispatch(SetValueStringAction("\(action.value ?? 0)"))
+            if case let .setValueAction(value) = action {
+                dispatch(.setValueStringAction("\(value ?? 0)"))
             }
 
             next(action)
@@ -50,20 +49,22 @@ let dispatchingMiddleware: Middleware<Any> = { dispatch, getState in
     }
 }
 
-let stateAccessingMiddleware: Middleware<TestStringAppState> = { dispatch, getState in
+let stateAccessingMiddleware: Middleware<TestStringAppState, Action> = { dispatch, getState in
     return { next in
         return { action in
-
-            let appState = getState(),
-                stringAction = action as? SetValueStringAction
+            let appState = getState()
 
             // avoid endless recursion by checking if we've dispatched exactly this action
-            if appState?.testValue == "OK" && stringAction?.value != "Not OK" {
+            if
+                appState?.testValue == "OK",
+                case let .setValueStringAction(value) = action,
+                value != "Not OK"
+            {
                 // dispatch a new action
-                dispatch(SetValueStringAction("Not OK"))
+                dispatch(.setValueStringAction("Not OK"))
 
                 // and swallow the current one
-                next(NoOpAction())
+                next(.noOpAction)
             } else {
                 next(action)
             }
@@ -71,7 +72,7 @@ let stateAccessingMiddleware: Middleware<TestStringAppState> = { dispatch, getSt
     }
 }
 
-func middleware(executing block: @escaping () -> Void) -> Middleware<Any> {
+func middleware(executing block: @escaping () -> Void) -> Middleware<Any, Action> {
     return { dispatch, getState in
         return { next in
             return { action in
@@ -90,19 +91,21 @@ class StoreMiddlewareTests: XCTestCase {
         let reducer = TestValueStringReducer()
         // Swift 4.1 fails to cast this from Middleware<StateType> to Middleware<TestStringAppState>
         // as expected during runtime, see: <https://bugs.swift.org/browse/SR-7362>
-        let middleware: [Middleware<TestStringAppState>] = [
+        let middleware: [Middleware<TestStringAppState, Action>] = [
             firstMiddleware,
             secondMiddleware
         ]
-        let store = Store<TestStringAppState>(reducer: reducer.handleAction,
+        let store = Store<TestStringAppState, Action>(
+            reducer: reducer.handleAction,
             state: TestStringAppState(),
-            middleware: middleware)
+            initialAction: .initial,
+            middleware: middleware
+        )
 
         let subscriber = TestStoreSubscriber<TestStringAppState>()
         store.subscribe(subscriber)
 
-        let action = SetValueStringAction("OK")
-        store.dispatch(action)
+        store.dispatch(.setValueStringAction("OK"))
 
         XCTAssertEqual(store.state.testValue, "OK First Middleware Second Middleware")
     }
@@ -114,20 +117,22 @@ class StoreMiddlewareTests: XCTestCase {
         let reducer = TestValueStringReducer()
         // Swift 4.1 fails to cast this from Middleware<StateType> to Middleware<TestStringAppState>
         // as expected during runtime, see: <https://bugs.swift.org/browse/SR-7362>
-        let middleware: [Middleware<TestStringAppState>] = [
+        let middleware: [Middleware<TestStringAppState, Action>] = [
             firstMiddleware,
             secondMiddleware,
             dispatchingMiddleware
         ]
-        let store = Store<TestStringAppState>(reducer: reducer.handleAction,
+        let store = Store<TestStringAppState, Action>(
+            reducer: reducer.handleAction,
             state: TestStringAppState(),
-            middleware: middleware)
+            initialAction: .initial,
+            middleware: middleware
+        )
 
         let subscriber = TestStoreSubscriber<TestStringAppState>()
         store.subscribe(subscriber)
 
-        let action = SetValueAction(10)
-        store.dispatch(action)
+        store.dispatch(.setValueAction(10))
 
         XCTAssertEqual(store.state.testValue, "10 First Middleware Second Middleware")
     }
@@ -140,10 +145,14 @@ class StoreMiddlewareTests: XCTestCase {
         var state = TestStringAppState()
         state.testValue = "OK"
 
-        let store = Store<TestStringAppState>(reducer: reducer.handleAction, state: state,
-            middleware: [stateAccessingMiddleware])
+        let store = Store<TestStringAppState, Action>(
+            reducer: reducer.handleAction,
+            state: state,
+            initialAction: .initial,
+            middleware: [stateAccessingMiddleware]
+        )
 
-        store.dispatch(SetValueStringAction("Action That Won't Go Through"))
+        store.dispatch(.setValueStringAction("Action That Won't Go Through"))
 
         XCTAssertEqual(store.state.testValue, "Not OK")
     }
@@ -152,19 +161,23 @@ class StoreMiddlewareTests: XCTestCase {
 
         let reducer = TestValueStringReducer()
         let state = TestStringAppState()
-        let store = Store<TestStringAppState>(reducer: reducer.handleAction, state: state,
-            middleware: [])
+        let store = Store<TestStringAppState, Action>(
+            reducer: reducer.handleAction,
+            state: state,
+            initialAction: .initial,
+            middleware: []
+        )
 
         // Adding
         var added = false
         store.middleware.append(middleware(executing: { added = true }))
-        store.dispatch(SetValueStringAction(""))
+        store.dispatch(.setValueStringAction(""))
         XCTAssertTrue(added)
 
         // Removing
         added = false
         store.middleware = []
-        store.dispatch(SetValueStringAction(""))
+        store.dispatch(.setValueStringAction(""))
         XCTAssertFalse(added)
     }
 }

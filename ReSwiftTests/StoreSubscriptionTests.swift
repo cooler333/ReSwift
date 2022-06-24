@@ -16,20 +16,20 @@ class StoreSubscriptionTests: XCTestCase {
 
     typealias TestSubscriber = TestStoreSubscriber<TestAppState>
 
-    var store: Store<TestAppState>!
+    var store: Store<TestAppState, Action>!
     var reducer: TestReducer!
 
     override func setUp() {
         super.setUp()
         reducer = TestReducer()
-        store = Store(reducer: reducer.handleAction, state: TestAppState())
+        store = Store(reducer: reducer.handleAction, state: TestAppState(), initialAction: .initial)
     }
 
     /**
      It does not strongly capture an observer
      */
     func testDoesNotCaptureStrongly() {
-        store = Store(reducer: reducer.handleAction, state: TestAppState())
+        store = Store(reducer: reducer.handleAction, state: TestAppState(), initialAction: .initial)
         var subscriber: TestSubscriber? = TestSubscriber()
 
         store.subscribe(subscriber!)
@@ -46,24 +46,24 @@ class StoreSubscriptionTests: XCTestCase {
      it removes deferenced subscribers before notifying state changes
      */
     func testRemoveSubscribers() {
-        store = Store(reducer: reducer.handleAction, state: TestAppState())
+        store = Store(reducer: reducer.handleAction, state: TestAppState(), initialAction: .initial)
         var subscriber1: TestSubscriber? = TestSubscriber()
         var subscriber2: TestSubscriber? = TestSubscriber()
 
         store.subscribe(subscriber1!)
         store.subscribe(subscriber2!)
-        store.dispatch(SetValueAction(3))
+        store.dispatch(.setValueAction(3))
         XCTAssertEqual(store.subscriptions.count, 2)
         XCTAssertEqual(subscriber1?.receivedStates.last?.testValue, 3)
         XCTAssertEqual(subscriber2?.receivedStates.last?.testValue, 3)
 
         subscriber1 = nil
-        store.dispatch(SetValueAction(5))
+        store.dispatch(.setValueAction(5))
         XCTAssertEqual(store.subscriptions.count, 1)
         XCTAssertEqual(subscriber2?.receivedStates.last?.testValue, 5)
 
         subscriber2 = nil
-        store.dispatch(SetValueAction(8))
+        store.dispatch(.setValueAction(8))
         XCTAssertEqual(store.subscriptions.count, 0)
     }
 
@@ -71,7 +71,7 @@ class StoreSubscriptionTests: XCTestCase {
      it replaces the subscription of an existing subscriber with the new one.
      */
     func testDuplicateSubscription() {
-        store = Store(reducer: reducer.handleAction, state: TestAppState())
+        store = Store(reducer: reducer.handleAction, state: TestAppState(), initialAction: .initial)
         let subscriber = TestSubscriber()
 
         // Initial subscription.
@@ -82,64 +82,36 @@ class StoreSubscriptionTests: XCTestCase {
         // One initial state update for every subscription.
         XCTAssertEqual(subscriber.receivedStates.count, 2)
 
-        store.dispatch(SetValueAction(3))
-        store.dispatch(SetValueAction(3))
-        store.dispatch(SetValueAction(3))
-        store.dispatch(SetValueAction(3))
+        store.dispatch(.setValueAction(3))
+        store.dispatch(.setValueAction(3))
+        store.dispatch(.setValueAction(3))
+        store.dispatch(.setValueAction(3))
 
         // Only a single further state update, since latest subscription skips repeated values.
         XCTAssertEqual(subscriber.receivedStates.count, 3)
     }
-
     /**
      it dispatches initial value upon subscription
      */
     func testDispatchInitialValue() {
-        store = Store(reducer: reducer.handleAction, state: TestAppState(testValue: 7))
+        store = Store(reducer: reducer.handleAction, state: TestAppState(), initialAction: .initial)
         let subscriber = TestSubscriber()
 
         store.subscribe(subscriber)
+        store.dispatch(.setValueAction(3))
 
-        XCTAssertEqual(subscriber.receivedStates.map(\.testValue), [7])
-    }
-
-    /**
-     it dispatches initial value upon subscription and subsequent state changes
-     */
-    func testDispatchStateChanges() {
-        store = Store(reducer: reducer.handleAction, state: TestAppState())
-        let subscriber = TestSubscriber()
-
-        store.subscribe(subscriber)
-        store.dispatch(SetValueAction(9))
-
-        XCTAssertEqual(subscriber.receivedStates.map(\.testValue), [nil, 9])
-    }
-
-    /**
-     it dispatches initial value upon subscription and subsequent state changes
-     */
-    func testDispatchInitialStateAfterStateChange() {
-        store = Store(reducer: reducer.handleAction, state: TestAppState())
-        let subscriber = TestSubscriber()
-
-        // Change state first ...
-        store.dispatch(SetValueAction(13))
-        // ... and then subscribe to receive the current state.
-        store.subscribe(subscriber)
-
-        XCTAssertEqual(subscriber.receivedStates.map(\.testValue), [13])
+        XCTAssertEqual(subscriber.receivedStates.last?.testValue, 3)
     }
 
     /**
      it allows dispatching from within an observer
      */
     func testAllowDispatchWithinObserver() {
-        store = Store(reducer: reducer.handleAction, state: TestAppState())
+        store = Store(reducer: reducer.handleAction, state: TestAppState(), initialAction: .initial)
         let subscriber = DispatchingSubscriber(store: store)
 
         store.subscribe(subscriber)
-        store.dispatch(SetValueAction(2))
+        store.dispatch(.setValueAction(2))
 
         XCTAssertEqual(store.state.testValue, 5)
     }
@@ -148,21 +120,21 @@ class StoreSubscriptionTests: XCTestCase {
      it does not dispatch value after subscriber unsubscribes
      */
     func testDontDispatchToUnsubscribers() {
-        store = Store(reducer: reducer.handleAction, state: TestAppState())
+        store = Store(reducer: reducer.handleAction, state: TestAppState(), initialAction: .initial)
         let subscriber = TestSubscriber()
 
-        store.dispatch(SetValueAction(5))
+        store.dispatch(.setValueAction(5))
         store.subscribe(subscriber)
-        store.dispatch(SetValueAction(10))
+        store.dispatch(.setValueAction(10))
 
         store.unsubscribe(subscriber)
         // Following value is missed due to not being subscribed:
-        store.dispatch(SetValueAction(15))
-        store.dispatch(SetValueAction(25))
+        store.dispatch(.setValueAction(15))
+        store.dispatch(.setValueAction(25))
 
         store.subscribe(subscriber)
 
-        store.dispatch(SetValueAction(20))
+        store.dispatch(.setValueAction(20))
 
         XCTAssertEqual(subscriber.receivedStates.count, 4)
         XCTAssertEqual(subscriber.receivedStates[subscriber.receivedStates.count - 4].testValue, 5)
@@ -175,7 +147,7 @@ class StoreSubscriptionTests: XCTestCase {
      it ignores identical subscribers
      */
     func testIgnoreIdenticalSubscribers() {
-        store = Store(reducer: reducer.handleAction, state: TestAppState())
+        store = Store(reducer: reducer.handleAction, state: TestAppState(), initialAction: .initial)
         let subscriber = TestSubscriber()
 
         store.subscribe(subscriber)
@@ -188,7 +160,7 @@ class StoreSubscriptionTests: XCTestCase {
      it ignores identical subscribers that provide substate selectors
      */
     func testIgnoreIdenticalSubstateSubscribers() {
-        store = Store(reducer: reducer.handleAction, state: TestAppState())
+        store = Store(reducer: reducer.handleAction, state: TestAppState(), initialAction: .initial)
         let subscriber = TestSubscriber()
 
         store.subscribe(subscriber) { $0 }
@@ -204,10 +176,10 @@ class StoreSubscriptionTests: XCTestCase {
         // `newState`, and then assigning that copy back to `subscriptions`, losing
         // the mutation that occured during `newState`
 
-        store = Store(reducer: reducer.handleAction, state: TestAppState())
+        store = Store(reducer: reducer.handleAction, state: TestAppState(), initialAction: .initial)
 
         let subscriber2 = BlockSubscriber<TestAppState> { _ in
-            self.store.dispatch(SetValueAction(2))
+            self.store.dispatch(.setValueAction(2))
         }
 
         let subscriber1 = BlockSubscriber<TestAppState> { [unowned self] state in
@@ -222,7 +194,7 @@ class StoreSubscriptionTests: XCTestCase {
             $0.only(when: { _, new in new.testValue.map { $0 == 1 } ?? false })
         }
 
-        store.dispatch(SetValueAction(1))
+        store.dispatch(.setValueAction(1))
 
         XCTAssertTrue(store.subscriptions.contains(where: {
             guard let subscriber = $0.subscriber else {
@@ -248,8 +220,6 @@ class StoreSubscriptionTests: XCTestCase {
 
 // MARK: Retain Cycle Detection
 
-private struct TracerAction: Action { }
-
 private class TestSubscriptionBox<S>: SubscriptionBox<S> {
     override init<T>(
         originalSubscription: Subscription<S>,
@@ -267,7 +237,7 @@ private class TestSubscriptionBox<S>: SubscriptionBox<S> {
     }
 }
 
-private class TestStore<State>: Store<State> {
+private class TestStore<State>: Store<State, Action> {
     override func subscriptionBox<T>(
         originalSubscription: Subscription<State>,
         transformedSubscription: Subscription<T>?,
@@ -288,7 +258,7 @@ extension StoreSubscriptionTests {
 
         autoreleasepool {
 
-            store = TestStore(reducer: reducer.handleAction, state: TestAppState())
+            store = TestStore(reducer: reducer.handleAction, state: TestAppState(), initialAction: .initial)
             let subscriber: TestSubscriber = TestSubscriber()
 
             // Preconditions
@@ -302,13 +272,13 @@ extension StoreSubscriptionTests {
                 let subscriptionBox = store.subscriptions.first! as! TestSubscriptionBox<TestAppState>
                 subscriptionBox.didDeinit = { didDeinit = true }
 
-                store.dispatch(TracerAction())
+                store.dispatch(.tracerAction)
                 XCTAssertEqual(subscriber.receivedStates.count, 2)
                 store.unsubscribe(subscriber)
             }
 
             XCTAssertEqual(store.subscriptions.count, 0)
-            store.dispatch(TracerAction())
+            store.dispatch(.tracerAction)
             XCTAssertEqual(subscriber.receivedStates.count, 2)
 
             store = nil
@@ -323,7 +293,12 @@ extension StoreSubscriptionTests {
 
         autoreleasepool {
 
-            store = TestStore(reducer: reducer.handleAction, state: TestAppState(), automaticallySkipsRepeats: false)
+            store = TestStore(
+                reducer: reducer.handleAction,
+                state: TestAppState(),
+                initialAction: .initial,
+                automaticallySkipsRepeats: false
+            )
             let subscriber = TestStoreSubscriber<Int?>()
 
             // Preconditions
@@ -339,13 +314,13 @@ extension StoreSubscriptionTests {
                 let subscriptionBox = store.subscriptions.first! as! TestSubscriptionBox<TestAppState>
                 subscriptionBox.didDeinit = { didDeinit = true }
 
-                store.dispatch(TracerAction())
+                store.dispatch(.tracerAction)
                 XCTAssertEqual(subscriber.receivedStates.count, 2)
                 store.unsubscribe(subscriber)
             }
 
             XCTAssertEqual(store.subscriptions.count, 0)
-            store.dispatch(TracerAction())
+            store.dispatch(.tracerAction)
             XCTAssertEqual(subscriber.receivedStates.count, 2)
 
             store = nil

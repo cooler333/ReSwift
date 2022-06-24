@@ -16,9 +16,19 @@ class StoreTests: XCTestCase {
      */
     func testInit() {
         let reducer = MockReducer()
-        _ = Store<CounterState>(reducer: reducer.handleAction, state: nil)
+        _ = Store<CounterState, Action>(
+            reducer: reducer.handleAction,
+            state: nil,
+            initialAction: .initial
+        )
 
-        XCTAssert(reducer.calledWithAction[0] is ReSwiftInit)
+        let firstAction = reducer.calledWithAction[0]
+        switch firstAction {
+        case .initial:
+            break
+        default:
+            XCTFail("First action must be `.initial`")
+        }
     }
 
     /**
@@ -32,6 +42,7 @@ class StoreTests: XCTestCase {
             _ = DeInitStore(
                 reducer: reducer.handleAction,
                 state: TestAppState(),
+                initialAction: .initial,
                 deInitAction: { deInitCount += 1 })
         }
 
@@ -41,7 +52,7 @@ class StoreTests: XCTestCase {
 }
 
 // Used for deinitialization test
-class DeInitStore<State>: Store<State> {
+class DeInitStore<State>: Store<State, Action> {
     var deInitAction: (() -> Void)?
 
     deinit {
@@ -49,27 +60,34 @@ class DeInitStore<State>: Store<State> {
     }
 
     required convenience init(
-        reducer: @escaping Reducer<State>,
+        reducer: @escaping Reducer<State, Action>,
         state: State?,
-        deInitAction: (() -> Void)?) {
-            self.init(
-                reducer: reducer,
-                state: state,
-                middleware: [],
-                automaticallySkipsRepeats: false)
-            self.deInitAction = deInitAction
+        initialAction: ActionType,
+        deInitAction: (() -> Void)?
+    ) {
+        self.init(
+            reducer: reducer,
+            state: state,
+            initialAction: initialAction,
+            middleware: [],
+            automaticallySkipsRepeats: false)
+        self.deInitAction = deInitAction
     }
 
     required init(
-        reducer: @escaping Reducer<State>,
+        reducer: @escaping Reducer<State, Action>,
         state: State?,
-        middleware: [Middleware<State>],
-        automaticallySkipsRepeats: Bool) {
-            super.init(
-                reducer: reducer,
-                state: state,
-                middleware: middleware,
-                automaticallySkipsRepeats: automaticallySkipsRepeats)
+        initialAction: Action,
+        middleware: [Middleware<State, Action>],
+        automaticallySkipsRepeats: Bool
+    ) {
+        super.init(
+            reducer: reducer,
+            state: state,
+            initialAction: .initial,
+            middleware: middleware,
+            automaticallySkipsRepeats: automaticallySkipsRepeats
+        )
     }
 }
 

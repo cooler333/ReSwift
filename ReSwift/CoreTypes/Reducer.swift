@@ -6,5 +6,5 @@
 //  Copyright © 2015 ReSwift Community. All rights reserved.
 //
 
-public typealias Reducer<ReducerStateType> =
-    (_ action: Action, _ state: ReducerStateType?) -> ReducerStateType
+public typealias Reducer<ReducerStateType, ActionType> =
+    (_ action: ActionType, _ state: ReducerStateType?) -> ReducerStateType

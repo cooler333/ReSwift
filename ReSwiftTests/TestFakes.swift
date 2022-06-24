@@ -12,8 +12,8 @@ import ReSwift
 struct TestAppState {
     var testValue: Int?
 
-    init(testValue: Int? = nil) {
-        self.testValue = testValue
+    init() {
+        testValue = nil
     }
 }
 
@@ -63,45 +63,15 @@ struct TestCustomAppState {
     }
 }
 
-struct NoOpAction: Action {}
-
-struct SetValueAction: Action {
-
-    let value: Int?
-    static let type = "SetValueAction"
-
-    init (_ value: Int?) {
-        self.value = value
-    }
-}
-
-struct SetValueStringAction: Action {
-
-    var value: String
-    static let type = "SetValueStringAction"
-
-    init (_ value: String) {
-        self.value = value
-    }
-}
-
-struct SetCustomSubstateAction: Action {
-
-    var value: Int
-    static let type = "SetCustomSubstateAction"
-
-    init (_ value: Int) {
-        self.value = value
-    }
-}
-
-struct SetNonEquatableAction: Action {
-    var value: NonEquatable
-    static let type = "SetNonEquatableAction"
-
-    init (_ value: NonEquatable) {
-        self.value = value
-    }
+enum Action {
+    case initial
+    case noOpAction
+    case setValueAction(_ value: Int?)
+    case setValueStringAction(_ value: String)
+    case setCustomSubstateAction(_ value: Int)
+    case setNonEquatableAction(_ value: NonEquatable)
+    case setOtherStateAction(_ otherState: OtherState)
+    case tracerAction
 }
 
 struct TestReducer {
@@ -109,8 +79,8 @@ struct TestReducer {
         var state = state ?? TestAppState()
 
         switch action {
-        case let action as SetValueAction:
-            state.testValue = action.value
+        case .setValueAction(let value):
+            state.testValue = value
             return state
         default:
             return state
@@ -123,8 +93,8 @@ struct TestValueStringReducer {
         var state = state ?? TestStringAppState()
 
         switch action {
-        case let action as SetValueStringAction:
-            state.testValue = action.value
+        case .setValueStringAction(let value):
+            state.testValue = value
             return state
         default:
             return state
@@ -137,8 +107,8 @@ struct TestCustomAppStateReducer {
         var state = state ?? TestCustomAppState()
 
         switch action {
-        case let action as SetCustomSubstateAction:
-            state.substate.value = action.value
+        case .setCustomSubstateAction(let value):
+            state.substate.value = value
             return state
         default:
             return state
@@ -147,14 +117,14 @@ struct TestCustomAppStateReducer {
 }
 
 struct TestNonEquatableReducer {
-    func handleAction(action: Action, state: TestNonEquatable?) ->
-        TestNonEquatable {
+    func handleAction(action: Action, state: TestNonEquatable?) -> TestNonEquatable {
         var state = state ?? TestNonEquatable()
 
         switch action {
-        case let action as SetNonEquatableAction:
-            state.testValue = action.value
+        case .setNonEquatableAction(let value):
+            state.testValue = value
             return state
+
         default:
             return state
         }
@@ -183,9 +153,9 @@ class BlockSubscriber<S>: StoreSubscriber {
 }
 
 class DispatchingSubscriber: StoreSubscriber {
-    var store: Store<TestAppState>
+    var store: Store<TestAppState, Action>
 
-    init(store: Store<TestAppState>) {
+    init(store: Store<TestAppState, Action>) {
         self.store = store
     }
 
@@ -193,7 +163,7 @@ class DispatchingSubscriber: StoreSubscriber {
         // Test if we've already dispatched this action to
         // avoid endless recursion
         if state.testValue != 5 {
-            self.store.dispatch(SetValueAction(5))
+            self.store.dispatch(.setValueAction(5))
         }
     }
 }

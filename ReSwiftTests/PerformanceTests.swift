@@ -5,12 +5,16 @@ import ReSwift
 
 final class PerformanceTests: XCTestCase {
     struct MockState {}
-    struct MockAction: Action {}
+    enum MockAction {
+        case initial
+        case noOpAction
+    }
 
     let subscribers: [MockSubscriber] = (0..<3000).map { _ in MockSubscriber() }
-    let store = Store(
+    let store = Store<MockState, MockAction>(
         reducer: { _, state in return state ?? MockState() },
         state: MockState(),
+        initialAction: .initial,
         automaticallySkipsRepeats: false
     )
 
@@ -23,7 +27,7 @@ final class PerformanceTests: XCTestCase {
     func testNotify() {
         self.subscribers.forEach(self.store.subscribe)
         self.measure {
-            self.store.dispatch(MockAction())
+            self.store.dispatch(.noOpAction)
         }
     }
 

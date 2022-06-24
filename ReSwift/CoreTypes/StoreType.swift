@@ -15,6 +15,7 @@
 public protocol StoreType: DispatchingStoreType {
 
     associatedtype State
+    associatedtype ActionType
 
     /// The current state stored in the store.
     var state: State! { get }
@@ -23,7 +24,7 @@ public protocol StoreType: DispatchingStoreType {
      The main dispatch function that is used by all convenience `dispatch` methods.
      This dispatch function can be extended by providing middlewares.
      */
-    var dispatchFunction: DispatchFunction! { get }
+    var dispatchFunction: DispatchFunction<ActionType>! { get }
 
     /**
      Subscribes the provided subscriber to this store.
@@ -105,36 +106,17 @@ public protocol StoreType: DispatchingStoreType {
      This action creator can then be dispatched as following:
 
      ```
-     store.dispatch( noteActionCreator.deleteNote(3) )
+     store.dispatch( noteActionCreatore.deleteNote(3) )
      ```
      */
     func dispatch(_ actionCreator: ActionCreator)
-
-    /**
-     Dispatches an async action creator to the store. An async action creator generates an
-     action creator asynchronously.
-     */
-    func dispatch(_ asyncActionCreator: AsyncActionCreator)
-
-    /**
-     Dispatches an async action creator to the store. An async action creator generates an
-     action creator asynchronously. Use this method if you want to wait for the state change
-     triggered by the asynchronously generated action creator.
-
-     This overloaded version of `dispatch` calls the provided `callback` as soon as the
-     asynchronously dispatched action has caused a new state calculation.
-
-     - Note: If the ActionCreator does not dispatch an action, the callback block will never
-     be called
-     */
-    func dispatch(_ asyncActionCreator: AsyncActionCreator, callback: DispatchCallback?)
 
     /**
      An optional callback that can be passed to the `dispatch` method.
      This callback will be called when the dispatched action triggers a new state calculation.
      This is useful when you need to wait on a state change, triggered by an action (e.g. wait on
      a successful login). However, you should try to use this callback very seldom as it
-     deviates slightly from the unidirectional data flow principal.
+     deviates slighlty from the unidirectional data flow principal.
      */
     associatedtype DispatchCallback = (State) -> Void
 
@@ -158,7 +140,7 @@ public protocol StoreType: DispatchingStoreType {
      ```
 
      */
-    associatedtype ActionCreator = (_ state: State, _ store: StoreType) -> Action?
+    associatedtype ActionCreator = (_ state: State, _ store: StoreType) -> ActionType?
 
     /// AsyncActionCreators allow the developer to wait for the completion of an async action.
     associatedtype AsyncActionCreator =

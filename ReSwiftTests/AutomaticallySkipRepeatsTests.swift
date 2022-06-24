@@ -10,13 +10,17 @@ import ReSwift
 
 class AutomaticallySkipRepeatsTests: XCTestCase {
 
-    private var store: Store<State>!
+    private var store: Store<State, ChangeAgeAction>!
     private var subscriptionUpdates: Int = 0
 
     override func setUp() {
         super.setUp()
         // Put setup code here. This method is called before the invocation of each test method in the class.
-        store = Store<State>(reducer: reducer, state: nil)
+        store = Store<State, ChangeAgeAction>(
+            reducer: reducer,
+            state: nil,
+            initialAction: .initial
+        )
         subscriptionUpdates = 0
     }
 
@@ -40,28 +44,28 @@ class AutomaticallySkipRepeatsTests: XCTestCase {
     func testDispatchUnrelatedActionWithExplicitSkipRepeatsWithRegularSubstateSelection() {
         store.subscribe(self) { $0.select { $0.name }.skipRepeats() }
         XCTAssertEqual(self.subscriptionUpdates, 1)
-        store.dispatch(ChangeAge(newAge: 30))
+        store.dispatch(.changeAge(30))
         XCTAssertEqual(self.subscriptionUpdates, 1)
     }
 
     func testDispatchUnrelatedActionWithExplicitSkipRepeatsWithKeyPath() {
         store.subscribe(self) { $0.select(\.name).skipRepeats() }
         XCTAssertEqual(self.subscriptionUpdates, 1)
-        store.dispatch(ChangeAge(newAge: 30))
+        store.dispatch(.changeAge(30))
         XCTAssertEqual(self.subscriptionUpdates, 1)
     }
 
     func testDispatchUnrelatedActionWithoutExplicitSkipRepeatsWithRegularSubstateSelection() {
         store.subscribe(self) { $0.select { $0.name } }
         XCTAssertEqual(self.subscriptionUpdates, 1)
-        store.dispatch(ChangeAge(newAge: 30))
+        store.dispatch(.changeAge(30))
         XCTAssertEqual(self.subscriptionUpdates, 1)
     }
 
     func testDispatchUnrelatedActionWithoutExplicitSkipRepeatsWithKeyPath() {
         store.subscribe(self) { $0.select(\.name) }
         XCTAssertEqual(self.subscriptionUpdates, 1)
-        store.dispatch(ChangeAge(newAge: 30))
+        store.dispatch(.changeAge(30))
         XCTAssertEqual(self.subscriptionUpdates, 1)
     }
 
@@ -84,17 +88,19 @@ extension State: Equatable {
     }
 }
 
-struct ChangeAge: Action {
-    let newAge: Int
+enum ChangeAgeAction {
+    case initial
+    case changeAge(_ newAge: Int)
 }
 
 private let initialState = State(age: 29, name: "Daniel")
 
-private func reducer(action: Action, state: State?) -> State {
+private func reducer(action: ChangeAgeAction, state: State?) -> State {
     let defaultState = state ?? initialState
     switch action {
-    case let changeAge as ChangeAge:
-        return State(age: changeAge.newAge, name: defaultState.name)
+    case .changeAge(let newAge):
+        return State(age: newAge, name: defaultState.name)
+
     default:
         return defaultState
     }

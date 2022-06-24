@@ -8,6 +8,7 @@ import Foundation
  care about the state, but want to be able to dispatch actions.
  */
 public protocol DispatchingStoreType {
+    associatedtype ActionType
 
     /**
      Dispatches an action. This is the simplest way to modify the stores state.
@@ -20,5 +21,5 @@ public protocol DispatchingStoreType {
 
      - parameter action: The action that is being dispatched to the store
      */
-    func dispatch(_ action: Action)
+    func dispatch(_ action: ActionType)
 }
