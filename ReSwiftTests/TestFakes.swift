@@ -7,7 +7,7 @@
 //
 
 import Foundation
-import ReSwift
+@testable import ReSwift
 
 struct TestAppState {
     var testValue: Int?

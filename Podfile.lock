@@ -1,16 +1,38 @@
 PODS:
+  - ReSwift (6.1.0)
+  - ReSwift/ReSwiftTests (6.1.0)
+  - ReSwiftThunk (2.0.1):
+    - ReSwift (~> 6.0)
+    - ReSwiftThunk/Core (= 2.0.1)
+  - ReSwiftThunk/Core (2.0.1):
+    - ReSwift (~> 6.0)
+  - ReSwiftThunk/ThunkTests (2.0.1):
+    - ReSwift (~> 6.0)
+    - ReSwiftThunk/Core
   - SwiftLint (0.27.0)
 
 DEPENDENCIES:
+  - ReSwift (from `.`)
+  - ReSwift/ReSwiftTests (from `.`)
+  - ReSwiftThunk (from `.`)
+  - ReSwiftThunk/ThunkTests (from `.`)
   - SwiftLint (~> 0.27.0)
 
 SPEC REPOS:
   trunk:
     - SwiftLint
 
+EXTERNAL SOURCES:
+  ReSwift:
+    :path: "."
+  ReSwiftThunk:
+    :path: "."
+
 SPEC CHECKSUMS:
+  ReSwift: 6ab8c93dc31d6e9cbd87ce2bf593d835c8e724a0
+  ReSwiftThunk: 7d89ed8ddce8b57f740d236dd034c1d5d0a552ea
   SwiftLint: 3207c1faa2240bf8973b191820a116113cd11073
 
-PODFILE CHECKSUM: 7bbdd45b8293c884aa09eb64369012f08940f4f7
+PODFILE CHECKSUM: f4291d767f630ee4259a80b762996ff90050c9aa
 
 COCOAPODS: 1.11.3

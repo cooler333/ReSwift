@@ -3,6 +3,14 @@
 # pods to be defined within a target. To work with that without having to make
 # any of the actual ReSwift targets dirty or bloated a dummy target called
 # SwiftLintIntegration has been added.
+
+platform :ios, '13.0'
+
+target 'ReSwift-iOS' do
+  pod 'ReSwift', path: '.', testspecs: ["ReSwiftTests"]
+  pod 'ReSwiftThunk', path: '.', testspecs: ["ThunkTests"]
+end
+
 target 'SwiftLintIntegration' do
   pod 'SwiftLint', '~> 0.27.0'
 end

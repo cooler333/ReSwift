@@ -6,7 +6,7 @@
 //  Copyright © 2017 ReSwift Community. All rights reserved.
 //
 import XCTest
-import ReSwift
+@testable import ReSwift
 
 class AutomaticallySkipRepeatsTests: XCTestCase {
 

@@ -7,7 +7,7 @@
 //
 
 import XCTest
-import ReSwift
+@testable import ReSwift
 
 // swiftlint:disable file_length
 // swiftlint:disable:next type_body_length

@@ -1,7 +1,7 @@
 //  Copyright © 2019 ReSwift Community. All rights reserved.
 
 import XCTest
-import ReSwift
+@testable import ReSwift
 
 final class PerformanceTests: XCTestCase {
     struct MockState {}

@@ -48,6 +48,26 @@
                ReferencedContainer = "container:ReSwift.xcodeproj">
             </BuildableReference>
          </TestableReference>
+         <TestableReference
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "8CC8730A1BAA6C823D74572F10AF8E49"
+               BuildableName = "ReSwift-Unit-ReSwiftTests.xctest"
+               BlueprintName = "ReSwift-Unit-ReSwiftTests"
+               ReferencedContainer = "container:Pods/Pods.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
+         <TestableReference
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "6853223EDF587DEA64125226AB91AFA6"
+               BuildableName = "ReSwiftThunk-Unit-ThunkTests.xctest"
+               BlueprintName = "ReSwiftThunk-Unit-ThunkTests"
+               ReferencedContainer = "container:Pods/Pods.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
       </Testables>
    </TestAction>
    <LaunchAction
